@@ -3,11 +3,13 @@ import os
 from modelo import ChatHistory, SessionLocal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from langchain.chat_models import init_chat_model
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import JSONResponse
+
 
 #Importamos las variables de entorno
 load_dotenv()
@@ -48,9 +50,26 @@ async def bot_request(bot: Bot,
                       api_key: str = Depends(verify_api_key),
                       db: AsyncSession = Depends(get_db)):
     try:
+        #Cargamos los mensajes previos del usuario
+        result = await db.execute(select(ChatHistory).order_by(ChatHistory.timestamp))
+
+#revisar
+        # para limitar los mensajes recordados a 10
+        # result = await db.execute(
+        #     select(ChatHistory).order_by(ChatHistory.timestamp.desc()).limit(10)
+        # )
+        # historial = reversed(result.scalars().all())
+
+
+        historial = result.scalars().all()
+
         #Creamos un arreglo que va acontener nuestro chat con el agente
         messages = [SystemMessage(content = "eres un experto en programacion que responde dudas unicamente sobre ese tema")]
 
+        for h in historial:
+            messages.append(HumanMessage(content = h.user_message))
+            messages.append(AIMessage(content = h.bot_response))
+        
         human_message = HumanMessage(content = bot.query)
         messages.append(human_message)
 
@@ -67,4 +86,4 @@ async def bot_request(bot: Bot,
         return {"response": response.content, "id": chat.id}
     
     except Exception as e:
-        return JSONResponse(status_code = 500, content = {"error": 500})
+        return JSONResponse(status_code = 500, content = {"error": str(e)})
