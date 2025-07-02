@@ -1,6 +1,9 @@
 import os
+import asyncio 
+import httpx
 
 from modelo import ChatHistory, SessionLocal
+from servicio.chatbot_service import ChatBotService
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -10,6 +13,9 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
+from telegram_bot import start_telegram_bot, stop_telegram_bot
 
 #Importamos las variables de entorno
 load_dotenv()
@@ -28,6 +34,8 @@ async def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code = 403, detail = "Clave de Api no valida")
 
+
+####    PAGINA    ####
 class Bot(BaseModel):
     query : str
 
@@ -40,13 +48,18 @@ async def get_db():
 async def startup():
     from modelo import init_models
     await init_models()
+    await start_telegram_bot()# si comento esta linea no se inicia el bot de telegram
+
+@app.on_event("shutdown")
+async def shutdown():
+    await stop_telegram_bot()
 
 @app.get("/")
 async def root():
     return {"message": "hola"}
 
 @app.post("/response")
-async def bot_request(bot: Bot, 
+async def uest(bot: Bot, 
                       api_key: str = Depends(verify_api_key),
                       db: AsyncSession = Depends(get_db)):
     try:
