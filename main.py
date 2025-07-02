@@ -3,7 +3,6 @@ import asyncio
 import httpx
 
 from modelo import ChatHistory, SessionLocal
-from servicio.chatbot_service import ChatBotService
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -46,12 +45,12 @@ async def get_db():
 
 @app.on_event("startup")
 async def startup():
-    from modelo import init_models
-    await init_models()
+    print("llamando a start_telegram_bot")
     await start_telegram_bot()# si comento esta linea no se inicia el bot de telegram
 
 @app.on_event("shutdown")
 async def shutdown():
+    print("cerrando conexion telegram")
     await stop_telegram_bot()
 
 @app.get("/")
@@ -59,7 +58,7 @@ async def root():
     return {"message": "hola"}
 
 @app.post("/response")
-async def uest(bot: Bot, 
+async def bot_requsest(bot: Bot, 
                       api_key: str = Depends(verify_api_key),
                       db: AsyncSession = Depends(get_db)):
     try:

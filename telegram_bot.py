@@ -28,11 +28,22 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"mensaje recibido de telegram: {user_input}")
 
 async def start_telegram_bot():
-    global telegram_app
-    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    await telegram_app.initialize()
-    await telegram_app.start() #Corre en segundo plano
+    try:
+        global telegram_app
+        print("iniciando e bot de Telegram")
+        telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+        print("bot construido")
+        telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        await telegram_app.initialize()
+        print("bot inicializado")
+        await telegram_app.start() #Corre en segundo plano
+        print("bot de telegram en ejecucion")
+        await telegram_app.updater.start_polling() # <-- importante para recibir mensajes
+
+        await telegram_app.updater.wait() # < -- mantiene el bot vivo
+    
+    except Exception as e:
+        print(f"Error al inicializar el bot de telegram")
 
 async def stop_telegram_bot():
     if telegram_app:
