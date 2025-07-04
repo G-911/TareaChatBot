@@ -6,6 +6,7 @@ from modelo import ChatHistory, SessionLocal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -21,6 +22,8 @@ load_dotenv()
 
 #Instanciamos fastApi
 app = FastAPI(debug = True)
+
+
 
 #Inicializamos el modelo
 model = init_chat_model("command-r-plus", model_provider = "cohere")

@@ -27,6 +27,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(data.get("response", "Error en la respuesta"))
         print(f"mensaje recibido de telegram: {user_input}")
 
+#Funcion para iniciar el bot de telegram
 async def start_telegram_bot():
     try:
         global telegram_app
@@ -45,6 +46,7 @@ async def start_telegram_bot():
     except Exception as e:
         print(f"Error al inicializar el bot de telegram")
 
+#Funcion para detener el bot de telegram
 async def stop_telegram_bot():
     if telegram_app:
         await telegram_app.stop()
