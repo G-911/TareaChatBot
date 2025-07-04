@@ -1,12 +1,14 @@
 import os
 import asyncio 
 import httpx
+import logging
 
 from modelo import ChatHistory, SessionLocal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -22,8 +24,6 @@ load_dotenv()
 
 #Instanciamos fastApi
 app = FastAPI(debug = True)
-
-
 
 #Inicializamos el modelo
 model = init_chat_model("command-r-plus", model_provider = "cohere")
@@ -48,7 +48,8 @@ async def get_db():
 
 @app.on_event("startup")
 async def startup():
-    print("llamando a start_telegram_bot")
+    logger = logging.getLogger(__name__)
+    logger.info("llamando a start_telegram_bot")
     await start_telegram_bot()# si comento esta linea no se inicia el bot de telegram
 
 @app.on_event("shutdown")
@@ -102,3 +103,17 @@ async def bot_requsest(bot: Bot,
     
     except Exception as e:
         return JSONResponse(status_code = 500, content = {"error": str(e)})
+
+
+####    UNIMOS CON VUE      ####
+app.mount("/", StaticFiles(directory="bot_front", html=True), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173/"],
+
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=['*'],
+)
+
