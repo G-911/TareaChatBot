@@ -19,19 +19,31 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from telegram_bot import start_telegram_bot, stop_telegram_bot
 
-#Importamos las variables de entorno
+# Importamos las variables de entorno
 load_dotenv()
 
-#Instanciamos fastApi
+# Instanciamos fastApi
 app = FastAPI(debug = True)
 
-#Inicializamos el modelo
+####    UNIMOS CON VUE      ####
+app.mount("/app", StaticFiles(directory="bot_front", html=True), name="static")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# Inicializamos el modelo
 model = init_chat_model("command-r-plus", model_provider = "cohere")
 
 #Creamos una variable que almacene la contrasena de API_KEY
 API_KEY = os.getenv("API_KEY")
 
-#Funcion para confirmar nuestra contrasena
+# Funcion para confirmar nuestra contrasena
 async def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code = 403, detail = "Clave de Api no valida")
@@ -41,7 +53,7 @@ async def verify_api_key(x_api_key: str = Header(...)):
 class Bot(BaseModel):
     query : str
 
-#Funcion para asegurarnos de que la sesion siempre se cierre
+# Funcion para asegurarnos de que la sesion siempre se cierre
 async def get_db():
     async with SessionLocal() as session:
         yield session
@@ -63,8 +75,8 @@ async def root():
 
 @app.post("/response")
 async def bot_requsest(bot: Bot, 
-                      api_key: str = Depends(verify_api_key),
-                      db: AsyncSession = Depends(get_db)):
+                      x_api_key: str = Depends(verify_api_key),
+                      db: AsyncSession = Depends(get_db)):    
     try:
         #Cargamos los mensajes previos del usuario
         result = await db.execute(select(ChatHistory).order_by(ChatHistory.timestamp))
@@ -103,17 +115,3 @@ async def bot_requsest(bot: Bot,
     
     except Exception as e:
         return JSONResponse(status_code = 500, content = {"error": str(e)})
-
-
-####    UNIMOS CON VUE      ####
-app.mount("/", StaticFiles(directory="bot_front", html=True), name="static")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173/"],
-
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=['*'],
-)
-
