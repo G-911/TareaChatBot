@@ -16,16 +16,28 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 #Conectamos FastApi con telegram
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_input = update.message.text
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "http://localhost:8000/response",
+                headers = {"x-api-key": API_KEY},
+                json = {"query": user_input}
+            )
+            data = response.json()
+            await update.message.reply_text(data.get("response", "Error en la respuesta"))
+            print(f"mensaje recibido de telegram: {user_input}")
+    except httpx.ReadTimeout:
+        await update.message.reply_text("⏱️ El servidor tardó demasiado en responder.")
+    except httpx.HTTPStatusError as e:
+        await update.message.reply_text(f"❌ Error del servidor: {e.response.status_code}")
+    except httpx.RequestError as e:
+        await update.message.reply_text("❌ No se pudo contactar con el servidor.")
+        print(f"Error de red: {e}")
+    except Exception as e:
+        await update.message.reply_text("❌ Ocurrió un error inesperado.")
+        print(f"Error inesperado: {e}")
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:8000/response",
-            headers = {"x-api-key": API_KEY},
-            json = {"query": user_input}
-        )
-        data = response.json()
-        await update.message.reply_text(data.get("response", "Error en la respuesta"))
-        print(f"mensaje recibido de telegram: {user_input}")
+
 
 #Funcion para iniciar el bot de telegram
 async def start_telegram_bot():
@@ -45,6 +57,7 @@ async def start_telegram_bot():
     
     except Exception as e:
         print(f"Error al inicializar el bot de telegram")
+
 
 #Funcion para detener el bot de telegram
 async def stop_telegram_bot():

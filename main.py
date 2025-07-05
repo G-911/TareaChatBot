@@ -1,12 +1,14 @@
 import os
 import asyncio 
 import httpx
+import logging
 
 from modelo import ChatHistory, SessionLocal
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
@@ -17,21 +19,29 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters
 from telegram_bot import start_telegram_bot, stop_telegram_bot
 
-#Importamos las variables de entorno
+# Importamos las variables de entorno
 load_dotenv()
 
-#Instanciamos fastApi
+# Instanciamos fastApi
 app = FastAPI(debug = True)
 
+####    UNIMOS CON VUE      ####
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
-
-#Inicializamos el modelo
+# Inicializamos el modelo
 model = init_chat_model("command-r-plus", model_provider = "cohere")
 
 #Creamos una variable que almacene la contrasena de API_KEY
 API_KEY = os.getenv("API_KEY")
 
-#Funcion para confirmar nuestra contrasena
+# Funcion para confirmar nuestra contrasena
 async def verify_api_key(x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code = 403, detail = "Clave de Api no valida")
@@ -41,14 +51,15 @@ async def verify_api_key(x_api_key: str = Header(...)):
 class Bot(BaseModel):
     query : str
 
-#Funcion para asegurarnos de que la sesion siempre se cierre
+# Funcion para asegurarnos de que la sesion siempre se cierre
 async def get_db():
     async with SessionLocal() as session:
         yield session
 
 @app.on_event("startup")
 async def startup():
-    print("llamando a start_telegram_bot")
+    logger = logging.getLogger(__name__)
+    logger.info("llamando a start_telegram_bot")
     await start_telegram_bot()# si comento esta linea no se inicia el bot de telegram
 
 @app.on_event("shutdown")
@@ -62,8 +73,8 @@ async def root():
 
 @app.post("/response")
 async def bot_requsest(bot: Bot, 
-                      api_key: str = Depends(verify_api_key),
-                      db: AsyncSession = Depends(get_db)):
+                      x_api_key: str = Depends(verify_api_key),
+                      db: AsyncSession = Depends(get_db)):    
     try:
         #Cargamos los mensajes previos del usuario
         result = await db.execute(select(ChatHistory).order_by(ChatHistory.timestamp))
@@ -79,7 +90,16 @@ async def bot_requsest(bot: Bot,
         historial = result.scalars().all()
 
         #Creamos un arreglo que va acontener nuestro chat con el agente
-        messages = [SystemMessage(content = "eres un experto en programacion que responde dudas unicamente sobre ese tema")]
+        messages = [SystemMessage(content = """
+            Eres un asistente experto en programación. Tu único propósito es ayudar a los usuarios a resolver dudas relacionadas con el desarrollo de software. Puedes responder preguntas sobre lenguajes de programación (como Python, JavaScript, Java, C++, etc.), estructuras de datos, algoritmos, bases de datos, frameworks, herramientas de desarrollo, buenas prácticas de codificación y depuración de errores.
+
+            No debes responder preguntas que no estén relacionadas con programación o desarrollo de software. Si el usuario hace una pregunta fuera de ese ámbito, responde educadamente que solo puedes ayudar con temas de programación.
+
+            Sé claro, conciso y técnico en tus respuestas. Siempre que sea posible, proporciona ejemplos de código bien comentados. Si una pregunta es ambigua, pide más detalles antes de responder.
+
+            Tu tono debe ser profesional, paciente y enfocado en enseñar. Tu objetivo es ayudar al usuario a aprender y resolver problemas de programación de forma efectiva.
+            """
+        )]
 
         for h in historial:
             messages.append(HumanMessage(content = h.user_message))
@@ -102,3 +122,6 @@ async def bot_requsest(bot: Bot,
     
     except Exception as e:
         return JSONResponse(status_code = 500, content = {"error": str(e)})
+    
+# Para garantizar que fastApi registre el resto de las rutas primero
+app.mount("/", StaticFiles(directory="bot_front", html=True), name="static")

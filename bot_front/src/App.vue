@@ -1,30 +1,62 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="container">
+    <h1>🤖 Asistente de Programación</h1>
+    <form @submit.prevent="enviarPregunta">
+      <input v-model="query" placeholder="Escribe tu pregunta..." />
+      <button type="submit">Enviar</button>
+    </form>
+    <div v-if="respuesta" class="respuesta">
+      <strong>Respuesta:</strong> {{ respuesta }}
+    </div>
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+<script setup>
+import { ref } from 'vue'
+import axios from 'axios'
+
+const query = ref('')
+const respuesta = ref('')
+
+const enviarPregunta = async () => {
+  try {
+    const res = await axios.post(
+      'http://localhost:8000/response',
+      { query: query.value },
+      // { headers: { 'x-api-key': import.meta.env.VTIE_API_KEY },
+      { headers: { 'x-api-key': 'miclaveultrasecreta' },
+      timeout: 3000
+   }
+    )
+    respuesta.value = res.data.response
+    console.log("enviando pregunta: ", query.value)
+  } catch (error) {
+    if (error.code === 'ECONNABORTED') {
+      respuesta.value = 'Tiempo de espera agotado'
+    } else{
+      respuesta.value = '❌ Error al obtener respuesta'
+    }
+    console.error(error)
+  }
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+</script>
+
+<style>
+.container {
+  max-width: 600px;
+  margin: 2rem auto;
+  font-family: sans-serif;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+input {
+  width: 80%;
+  padding: 0.5rem;
+}
+button {
+  padding: 0.5rem 1rem;
+}
+.respuesta {
+  margin-top: 1rem;
+  background: #08070716;
+  padding: 1rem;
 }
 </style>
