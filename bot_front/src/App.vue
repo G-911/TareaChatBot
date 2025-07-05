@@ -23,6 +23,7 @@ const enviarPregunta = async () => {
     const res = await axios.post(
       'http://localhost:8000/response',
       { query: query.value },
+      // { headers: { 'x-api-key': import.meta.env.VTIE_API_KEY },
       { headers: { 'x-api-key': 'miclaveultrasecreta' },
       timeout: 3000
    }
@@ -55,7 +56,7 @@ button {
 }
 .respuesta {
   margin-top: 1rem;
-  background: #f0f0f0;
+  background: #08070716;
   padding: 1rem;
 }
 </style>
