@@ -21,13 +21,20 @@ const respuesta = ref('')
 const enviarPregunta = async () => {
   try {
     const res = await axios.post(
-      'http://localhost:8000',
+      'http://localhost:8000/response',
       { query: query.value },
-      { headers: { 'x-api-key': import.meta.env.VITE_API_KEY } }
+      { headers: { 'x-api-key': 'miclaveultrasecreta' },
+      timeout: 3000
+   }
     )
     respuesta.value = res.data.response
+    console.log("enviando pregunta: ", query.value)
   } catch (error) {
-    respuesta.value = '❌ Error al obtener respuesta'
+    if (error.code === 'ECONNABORTED') {
+      respuesta.value = 'Tiempo de espera agotado'
+    } else{
+      respuesta.value = '❌ Error al obtener respuesta'
+    }
     console.error(error)
   }
 }
