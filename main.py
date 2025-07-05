@@ -26,8 +26,6 @@ load_dotenv()
 app = FastAPI(debug = True)
 
 ####    UNIMOS CON VUE      ####
-app.mount("/app", StaticFiles(directory="bot_front", html=True), name="static")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -115,3 +113,6 @@ async def bot_requsest(bot: Bot,
     
     except Exception as e:
         return JSONResponse(status_code = 500, content = {"error": str(e)})
+    
+# Para garantizar que fastApi registre el resto de las rutas primero
+app.mount("/", StaticFiles(directory="bot_front", html=True), name="static")
