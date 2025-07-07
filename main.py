@@ -62,7 +62,7 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
-    print("cerrando conexion telegram")
+    # print("cerrando conexion telegram")
     await stop_telegram_bot()
 
 @app.get("/")
