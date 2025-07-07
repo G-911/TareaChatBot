@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, watch } from 'vue'
 import axios from 'axios'
 
 const query = ref('')
@@ -49,6 +49,20 @@ const chatWindow = ref(null)
 
 const botAvatar = 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png'
 const userAvatar = 'https://cdn-icons-png.flaticon.com/512/4712/4712105.png'
+
+// Cargar historial desde localStorage
+onMounted(() => {
+  const guardado = localStorage.getItem('chat_historial')
+  if (guardado) {
+    mensajes.value = JSON.parse(guardado)
+    nextTick(scrollToBottom)
+  }
+})
+
+// Guardar historial cada vez que cambia
+watch(mensajes, (nuevo) => {
+  localStorage.setItem('chat_historial', JSON.stringify(nuevo))
+}, { deep: true })
 
 const enviarPregunta = async () => {
   if (!query.value.trim() || cargando.value) return
@@ -165,7 +179,7 @@ h1 {
   display: flex;
   padding: 1rem;
   border-top: 1px solid #ccc;
-  background: #f9f9f9;
+  background:  f9f9f9;
 }
 
 input {
