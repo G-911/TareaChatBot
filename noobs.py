@@ -15,7 +15,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot_telegram.telegram_bot import start_telegram_bot, stop_telegram_bot
+from bot_telegram.noob_telegram_bot import start_telegram_bot, stop_telegram_bot
 
 # Importamos las variables de entorno
 load_dotenv()
