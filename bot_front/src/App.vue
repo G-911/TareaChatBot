@@ -75,7 +75,7 @@ const enviarPregunta = async () => {
 
   try {
     const res = await axios.post(
-      'http://localhost:8000/response',
+      'http://localhost:8000/response', 
       { query: query.value },
       {
         headers: { 'x-api-key': 'miclaveultrasecreta' },
